@@ -1,165 +1,221 @@
-import { useMemo, useState } from 'react'
+import React, { useMemo } from 'react'
 import {
-    View,
-    ScrollView,
-    StyleSheet,
-    Pressable,
-    RefreshControl,
+  View,
+  ScrollView,
+  StyleSheet,
+  Pressable,
+  Dimensions,
+  Platform,
 } from 'react-native'
-import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useQueryClient } from '@tanstack/react-query'
+import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
+import * as Haptics from 'expo-haptics'
+
 import { Text } from '@/components/ui/Text'
 import { Card } from '@/components/ui/Card'
-import TextInputField from '@/components/ui/TextInputField'
-import {
-    BG,
-    BORDER,
-    TEXT_PRIMARY,
-    TEXT_SECONDARY,
-    TEXT_TERTIARY,
-} from '@/lib/theme'
+import { useAffirmationsState } from '@/hooks/useAffirmationsState'
+import { CATEGORIES, CARD_THEMES } from '@/lib/affirmations'
+import { ACCENT, BG, BORDER, TEXT_SECONDARY, TEXT_TERTIARY } from '@/lib/theme'
 import { TAB_BAR_CLEARANCE } from '@/components/TabBar'
-import StatusBadge from '@/components/ui/StatusBadge'
-import { statusLabel, type ItemStatus } from '@/lib/mockData'
-import { useItems } from '@/hooks/useItems'
 
-type FilterType = 'all' | ItemStatus
-
-const FILTERS: Array<{ key: FilterType; label: string }> = [
-    { key: 'all', label: 'All' },
-    { key: 'active', label: 'Active' },
-    { key: 'pending', label: 'Pending' },
-    { key: 'archived', label: 'Archived' },
-]
+const { width: SW } = Dimensions.get('window')
 
 export default function ExploreScreen() {
-    const insets = useSafeAreaInsets()
-    const [refreshing, setRefreshing] = useState(false)
-    const [query, setQuery] = useState('')
-    const [activeFilter, setActiveFilter] = useState<FilterType>('all')
-    const queryClient = useQueryClient()
+  const insets = useSafeAreaInsets()
+  
+  const {
+    categories: activeCategories,
+    saveCategories,
+    themeId: activeThemeId,
+    saveThemeId,
+    activeTheme,
+  } = useAffAffState()
 
-    const { data: allItems = [] } = useItems()
-
-    const filtered = useMemo(() => {
-        const byStatus = activeFilter === 'all'
-            ? allItems
-            : allItems.filter((item) => item.status === activeFilter)
-
-        if (!query.trim()) return byStatus
-
-        const q = query.trim().toLowerCase()
-        return byStatus.filter((item) => {
-            return (
-                item.name.toLowerCase().includes(q)
-                || item.owner.toLowerCase().includes(q)
-                || item.summary.toLowerCase().includes(q)
-            )
-        })
-    }, [activeFilter, query, allItems])
-
-    const onRefresh = async () => {
-        setRefreshing(true)
-        await queryClient.invalidateQueries({ queryKey: ['items'] })
-        setRefreshing(false)
+  const handleToggleCategory = (catId: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {})
     }
+    
+    let next: string[]
+    if (activeCategories.includes(catId)) {
+      // Keep at least one category selected
+      if (activeCategories.length <= 1) return
+      next = activeCategories.filter((c) => c !== catId)
+    } else {
+      next = [...activeCategories, catId]
+    }
+    saveCategories(next)
+  }
 
-    return (
-        <ScrollView
-            style={{ flex: 1, backgroundColor: BG }}
-            contentContainerStyle={[s.container, { paddingTop: insets.top + 16, paddingBottom: TAB_BAR_CLEARANCE + 16 }]}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}
-            showsVerticalScrollIndicator={false}
-        >
-            <View style={s.header}>
-                <Text style={s.title}>Explore</Text>
-                <Text style={s.subtitle}>Search and browse all items.</Text>
-            </View>
+  const handleSelectTheme = (id: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {})
+    }
+    saveThemeId(id)
+  }
 
-            <TextInputField
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Search by name, owner, or description"
-            />
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: BG }}
+      contentContainerStyle={[s.container, { paddingTop: insets.top + 20, paddingBottom: TAB_BAR_CLEARANCE + 20 }]}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* 🔮 App header */}
+      <View style={s.header}>
+        <Text style={s.title}>Personalize</Text>
+        <Text style={s.sub}>Customize your mindset focus and visual experience.</Text>
+      </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
-                {FILTERS.map((filter) => {
-                    const active = filter.key === activeFilter
-                    return (
-                        <Pressable
-                            key={filter.key}
-                            onPress={() => setActiveFilter(filter.key)}
-                            style={[s.filterChip, active && s.filterChipActive]}
-                        >
-                            <Text style={[s.filterText, active && s.filterTextActive]}>{filter.label}</Text>
-                        </Pressable>
-                    )
-                })}
-            </ScrollView>
+      {/* 🌸 Motivation Categories Grid */}
+      <View style={s.section}>
+        <Text style={s.sectionTitle}>Affirmation Categories</Text>
+        <Text style={s.sectionDesc}>Select the areas you wish to prioritize today. We will prioritize these on your home feed.</Text>
+        
+        <View style={s.grid}>
+          {CATEGORIES.map((cat) => {
+            const isActive = activeCategories.includes(cat.id)
+            return (
+              <Pressable
+                key={cat.id}
+                onPress={() => handleToggleCategory(cat.id)}
+                style={({ pressed }) => [
+                  s.catCard,
+                  isActive && { borderColor: ACCENT, backgroundColor: 'rgba(244,63,94,0.06)' },
+                  pressed && { scale: 0.98 }
+                ]}
+              >
+                <View style={[s.catIconWrap, isActive && { backgroundColor: `${ACCENT}22` }]}>
+                  <Ionicons
+                    name={cat.icon as any}
+                    size={22}
+                    color={isActive ? ACCENT : TEXT_SECONDARY}
+                  />
+                </View>
+                
+                <Text style={[s.catName, isActive && { color: '#fff', fontWeight: '700' }]}>
+                  {cat.name}
+                </Text>
 
-            {filtered.length === 0 ? (
-                <Card style={s.emptyCard}>
-                    <Text style={s.emptyTitle}>No matches found</Text>
-                    <Text style={s.emptySub}>Try another keyword or switch filters.</Text>
-                </Card>
-            ) : (
-                filtered.map((item) => (
-                    <Pressable
-                        key={item.id}
-                        onPress={() => router.push(`/detail/${item.id}`)}
-                        style={({ pressed }) => [pressed && { opacity: 0.72 }]}
-                    >
-                        <Card style={s.itemCard}>
-                            <View style={s.topRow}>
-                                <Text style={s.itemName}>{item.name}</Text>
-                                <StatusBadge status={item.status} label={statusLabel(item.status)} />
-                            </View>
+                {isActive && (
+                  <View style={s.activeBadge}>
+                    <Ionicons name="checkmark-circle" size={18} color={ACCENT} />
+                  </View>
+                )}
+              </Pressable>
+            )
+          })}
+        </View>
+      </View>
 
-                            <Text style={s.ownerText}>Owner: {item.owner}</Text>
-                            <Text style={s.summaryText}>{item.summary}</Text>
-
-                            <View style={s.metaRow}>
-                                <Text style={s.metaText}>Completion {item.completion}%</Text>
-                                <Text style={s.metaText}>Health {item.health}</Text>
-                                <Text style={s.metaText}>{item.activeUsers} active</Text>
-                            </View>
-                        </Card>
-                    </Pressable>
-                ))
-            )}
-        </ScrollView>
-    )
+      {/* 🎨 Theme palettes grid */}
+      <View style={s.section}>
+        <Text style={s.sectionTitle}>Visual Themes</Text>
+        <Text style={s.sectionDesc}>Choose a visual colorway that matches your current energy and vibe.</Text>
+        
+        <View style={s.themeGrid}>
+          {CARD_THEMES.map((theme) => {
+            const isActive = theme.id === activeThemeId
+            return (
+              <Pressable
+                key={theme.id}
+                onPress={() => handleSelectTheme(theme.id)}
+                style={s.themeCardContainer}
+              >
+                <LinearGradient
+                  colors={theme.colors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[s.themeGradientPreview, isActive && s.themeGradientActive]}
+                >
+                  {isActive && (
+                    <View style={s.checkPill}>
+                      <Ionicons name="checkmark" size={16} color="#fff" />
+                    </View>
+                  )}
+                </LinearGradient>
+                <Text style={[s.themeLabel, isActive && { color: '#fff', fontWeight: '600' }]}>
+                  {theme.name}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>
+      </View>
+    </ScrollView>
+  )
 }
 
+// ─── Alias hook locally for clean name compilation ───────────────────────────
+function useAffAffState() {
+  return useAffirmationsState()
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const s = StyleSheet.create({
-    container: { paddingHorizontal: 20, gap: 12 },
-    header: { gap: 4, marginBottom: 2 },
-    title: { fontSize: 24, fontWeight: '800', color: TEXT_PRIMARY, letterSpacing: -0.5 },
-    subtitle: { fontSize: 13, color: TEXT_SECONDARY },
-    filterRow: { gap: 8, paddingVertical: 4 },
-    filterChip: {
-        borderWidth: 1,
-        borderColor: BORDER,
-        borderRadius: 999,
-        paddingHorizontal: 12,
-        paddingVertical: 7,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-    },
-    filterChipActive: {
-        backgroundColor: 'rgba(255,255,255,0.14)',
-        borderColor: 'rgba(255,255,255,0.25)',
-    },
-    filterText: { fontSize: 12, color: TEXT_SECONDARY, fontWeight: '600' },
-    filterTextActive: { color: TEXT_PRIMARY },
-    emptyCard: { alignItems: 'center', paddingVertical: 24, gap: 4, marginTop: 8 },
-    emptyTitle: { fontSize: 15, fontWeight: '700', color: TEXT_PRIMARY },
-    emptySub: { fontSize: 13, color: TEXT_SECONDARY },
-    itemCard: { gap: 6, paddingVertical: 13 },
-    topRow: { flexDirection: 'row', gap: 8 },
-    itemName: { flex: 1, fontSize: 15, fontWeight: '700', color: TEXT_PRIMARY },
-    ownerText: { fontSize: 12, color: TEXT_TERTIARY },
-    summaryText: { fontSize: 12.5, lineHeight: 18, color: TEXT_SECONDARY },
-    metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
-    metaText: { fontSize: 11, color: TEXT_TERTIARY },
+  container: { paddingHorizontal: 20, gap: 24 },
+  header: { gap: 4, marginBottom: 8 },
+  title: { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.6 },
+  sub: { fontSize: 14, color: TEXT_SECONDARY, lineHeight: 20 },
+  
+  section: { gap: 10 },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: TEXT_TERTIARY,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  sectionDesc: { fontSize: 13, color: TEXT_SECONDARY, lineHeight: 18, marginBottom: 6 },
+  
+  // Categories Grid
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  catCard: {
+    width: (SW - 52) / 2,
+    backgroundColor: '#151515',
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+    position: 'relative',
+  },
+  catIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  catName: { color: TEXT_SECONDARY, fontSize: 14, fontWeight: '600' },
+  activeBadge: { position: 'absolute', top: 12, right: 12 },
+  
+  // Themes Grid
+  themeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  themeCardContainer: { width: (SW - 52) / 2, gap: 6, marginBottom: 6 },
+  themeGradientPreview: {
+    width: '100%',
+    height: 96,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  themeGradientActive: {
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  checkPill: {
+    width: 26,
+    height: 26,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeLabel: { color: TEXT_SECONDARY, fontSize: 12.5, fontWeight: '500', paddingLeft: 4 },
 })

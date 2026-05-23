@@ -7,7 +7,7 @@
  * the screens registered here.
  */
 import { Tabs } from 'expo-router'
-import { House, Compass, Bell, CircleUser } from 'lucide-react-native'
+import { House, Palette, Flame, CircleUser } from 'lucide-react-native'
 import TabBar, { TAB_BAR_HEIGHT } from '@/components/TabBar'
 import { BG } from '@/lib/theme'
 
@@ -35,9 +35,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          tabBarLabel: 'Explore',
+          tabBarLabel: 'Personalize',
           tabBarIcon: ({ color, size }) => (
-            <Compass size={size} color={color} strokeWidth={1.6} />
+            <Palette size={size} color={color} strokeWidth={1.6} />
           ),
         }}
       />
@@ -45,9 +45,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="activity"
         options={{
-          tabBarLabel: 'Activity',
+          tabBarLabel: 'Streak',
           tabBarIcon: ({ color, size }) => (
-            <Bell size={size} color={color} strokeWidth={1.6} />
+            <Flame size={size} color={color} strokeWidth={1.6} />
           ),
         }}
       />
