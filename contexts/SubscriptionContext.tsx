@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
-import Purchases from 'react-native-purchases'
+import { Platform } from 'react-native'
+import type PurchasesType from 'react-native-purchases'
 import {
   isRCPremium,
   fetchOfferings,
@@ -58,8 +59,23 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }
 
   useEffect(() => {
+    if (Platform.OS === 'web') {
+      setIsLoading(false)
+      return
+    }
+
     loadStatus()
     fetchOfferings().then(setOfferings)
+
+    let Purchases: typeof PurchasesType | null = null
+    try {
+      const RC = require('react-native-purchases')
+      Purchases = RC.default || RC
+    } catch (e) {
+      console.warn('[RevenueCat] Failed to load native purchases in context:', e)
+    }
+
+    if (!Purchases) return
 
     // Real-time listener: RevenueCat calls this whenever entitlement state changes
     // (e.g. after purchase, cancellation, or subscription expiry).
@@ -70,7 +86,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     Purchases.addCustomerInfoUpdateListener(onCustomerInfoUpdated)
 
     return () => {
-      Purchases.removeCustomerInfoUpdateListener(onCustomerInfoUpdated)
+      Purchases?.removeCustomerInfoUpdateListener(onCustomerInfoUpdated)
     }
   }, [])
 
