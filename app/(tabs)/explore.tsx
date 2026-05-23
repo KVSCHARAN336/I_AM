@@ -30,7 +30,7 @@ export default function ExploreScreen() {
     themeId: activeThemeId,
     saveThemeId,
     activeTheme,
-  } = useAffAffState()
+  } = useAffirmationsState()
 
   const handleToggleCategory = (catId: string) => {
     if (Platform.OS !== 'web') {
@@ -82,7 +82,7 @@ export default function ExploreScreen() {
                 style={({ pressed }) => [
                   s.catCard,
                   isActive && { borderColor: ACCENT, backgroundColor: 'rgba(244,63,94,0.06)' },
-                  pressed && { scale: 0.98 }
+                  pressed && { transform: [{ scale: 0.98 }] }
                 ]}
               >
                 <View style={[s.catIconWrap, isActive && { backgroundColor: `${ACCENT}22` }]}>

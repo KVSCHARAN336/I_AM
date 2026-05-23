@@ -3,18 +3,20 @@ import { Platform } from 'react-native'
 import { AFFIRMATIONS } from './affirmations'
 
 // Configure global notification handler
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  })
-} catch (e) {
-  console.warn('[Notifications] Failed to set global notification handler:', e)
+if (Platform.OS !== 'web') {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    })
+  } catch (e) {
+    console.warn('[Notifications] Failed to set global notification handler:', e)
+  }
 }
 
 /**
