@@ -24,8 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Text } from '@/components/ui/Text'
 import { AlertModal } from '@/components/ui/AppModal'
 import { useSubscription } from '@/contexts/SubscriptionContext'
-import { PurchasesPackage } from 'react-native-purchases'
-import Purchases from 'react-native-purchases'
+import type { PurchasesPackage } from 'react-native-purchases'
 import { track } from '@/lib/analytics'
 import { adjustBrightness } from '@/lib/utils'
 import * as Haptics from 'expo-haptics'
@@ -189,7 +188,10 @@ export default function UpgradeScreen() {
   async function handleRedeemCode() {
     track('redeem_code_tapped')
     if (Platform.OS === 'ios') {
-      try { await Purchases.presentCodeRedemptionSheet() }
+      try {
+        const PurchasesClass = require('react-native-purchases').default
+        await PurchasesClass.presentCodeRedemptionSheet()
+      }
       catch { Linking.openURL('https://apps.apple.com/redeem') }
     } else {
       waitingRef.current = true
